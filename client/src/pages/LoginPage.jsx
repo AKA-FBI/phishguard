@@ -66,7 +66,7 @@ export default function LoginPage() {
         </form>
 
         <p className="text-center text-sm text-gray-500 mt-6">
-          Don't have an account? <Link to="/register" className="text-brand-600 hover:underline font-medium">Register here</Link>
+          Don't have an account? <Link to="/consent" className="text-brand-600 hover:underline font-medium">Register here</Link>
         </p>
       </div>
     </div>

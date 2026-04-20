@@ -10,6 +10,12 @@ export default function RegisterPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  const hasConsent = localStorage.getItem('phishguard_consent');
+  if (!hasConsent) {
+    navigate('/consent');
+    return null;
+  }
+
   function update(field, value) {
     setForm(prev => ({ ...prev, [field]: value }));
   }

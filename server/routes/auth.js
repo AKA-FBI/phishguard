@@ -100,7 +100,7 @@ router.post('/login', validateLogin, async (req, res) => {
     // Fetch progress
     const { data: progress } = await supabaseAdmin
       .from('user_progress')
-      .select('*')
+      .select('*, groups(name)')
       .eq('user_id', data.user.id)
       .single();
 
@@ -120,7 +120,7 @@ router.get('/me', requireAuth, async (req, res) => {
   try {
     const { data: progress } = await supabaseAdmin
       .from('user_progress')
-      .select('*')
+      .select('*, groups(name)')
       .eq('user_id', req.user.id)
       .single();
 
