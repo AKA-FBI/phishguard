@@ -65,9 +65,12 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-500 mt-6">
-          Don't have an account? <Link to="/consent" className="text-brand-600 hover:underline font-medium">Register here</Link>
+        <p className="text-center text-sm text-gray-500 mt-4">
+          Already have an account? Sign in above.
         </p>
+        <Link to="/consent" className="block text-center mt-3 bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 rounded-lg transition-colors">
+          New here? Start the Study
+        </Link>
       </div>
     </div>
   );
