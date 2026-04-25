@@ -16,7 +16,8 @@ export default function DashboardPage() {
       complete: progress?.pre_assessment_complete,
       action: () => navigate('/assessment/pre'),
       buttonText: 'Start Assessment',
-      locked: false
+      locked: false,
+      lockedReason: ''
     },
     {
       title: 'Training Module',
@@ -24,7 +25,8 @@ export default function DashboardPage() {
       complete: progress?.training_complete,
       action: () => navigate('/training'),
       buttonText: 'Begin Training',
-      locked: !progress?.pre_assessment_complete
+      locked: !progress?.pre_assessment_complete,
+      lockedReason: 'Complete the Pre-Training Assessment first to unlock this step.'
     },
     {
       title: 'Post-Training Assessment',
@@ -32,7 +34,8 @@ export default function DashboardPage() {
       complete: progress?.post_assessment_complete,
       action: () => navigate('/assessment/post'),
       buttonText: 'Start Assessment',
-      locked: !progress?.training_complete
+      locked: !progress?.training_complete,
+      lockedReason: 'Complete the Training Module first to unlock this step.'
     },
     {
       title: 'View Your Results',
@@ -40,7 +43,8 @@ export default function DashboardPage() {
       complete: false,
       action: () => navigate('/results'),
       buttonText: 'View Results',
-      locked: !progress?.post_assessment_complete
+      locked: !progress?.post_assessment_complete,
+      lockedReason: 'Complete the Post-Training Assessment first to unlock this step.'
     }
   ];
 
@@ -93,7 +97,13 @@ export default function DashboardPage() {
                 </span>
               )}
               {step.locked && !step.complete && (
-                <span className="text-gray-400 text-sm shrink-0">🔒 Locked</span>
+                <div className="relative group shrink-0">
+                  <span className="text-gray-400 text-sm cursor-help">🔒 Locked</span>
+                  <div className="absolute right-0 top-8 w-64 bg-gray-800 text-white text-xs rounded-lg px-3 py-2 hidden group-hover:block shadow-lg z-10">
+                    {step.lockedReason}
+                    <div className="absolute -top-1 right-4 w-2 h-2 bg-gray-800 rotate-45"></div>
+                  </div>
+                </div>
               )}
             </div>
           </div>

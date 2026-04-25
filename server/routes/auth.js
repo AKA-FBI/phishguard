@@ -68,9 +68,16 @@ router.post('/register', validateRegistration, async (req, res) => {
       return res.status(400).json({ error: 'Account created but login failed. Please log in manually.' });
     }
 
+    // Fetch the group name for the response
+    const { data: group } = await supabaseAdmin
+      .from('groups')
+      .select('name')
+      .eq('id', parseInt(assignedGroup))
+      .single();
+
     res.status(201).json({
       message: 'Registration successful',
-      user: { id: authData.user.id, email, full_name, group_id: parseInt(assignedGroup) },
+      user: { id: authData.user.id, email, full_name, group_id: parseInt(assignedGroup), groups: group },
       session: session.session
     });
   } catch (err) {
