@@ -97,13 +97,12 @@ export default function DashboardPage() {
                 </span>
               )}
               {step.locked && !step.complete && (
-                <div className="relative group shrink-0">
-                  <span className="text-gray-400 text-sm cursor-help">🔒 Locked</span>
-                  <div className="absolute right-0 top-8 w-64 bg-gray-800 text-white text-xs rounded-lg px-3 py-2 hidden group-hover:block shadow-lg z-10">
-                    {step.lockedReason}
-                    <div className="absolute -top-1 right-4 w-2 h-2 bg-gray-800 rotate-45"></div>
-                  </div>
-                </div>
+                <span 
+                  className="text-gray-400 text-sm shrink-0 cursor-help border-b border-dashed border-gray-300"
+                  title={step.lockedReason}
+                >
+                  🔒 Locked
+                </span>
               )}
             </div>
           </div>
