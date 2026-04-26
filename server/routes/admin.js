@@ -159,4 +159,56 @@ router.get('/export', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
+// DELETE /api/admin/user/:userId - delete a user and all associated data
+router.delete('/user/:userId', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Delete in order: logs first, then results, progress, profile, then auth user
+    await supabaseAdmin.from('assessment_results').delete().eq('user_id', userId);
+    await supabaseAdmin.from('interaction_logs').delete().eq('user_id', userId);
+    await supabaseAdmin.from('user_progress').delete().eq('user_id', userId);
+    await supabaseAdmin.from('profiles').delete().eq('id', userId);
+    await supabaseAdmin.auth.admin.deleteUser(userId);
+
+    res.json({ message: 'User and all associated data deleted' });
+  } catch (err) {
+    console.error('Delete user error:', err);
+    res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+
+// DELETE /api/admin/users/all - delete all student data (keeps admins)
+router.delete('/users/all', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    // Get all student profiles (not admins)
+    const { data: students } = await supabaseAdmin
+      .from('profiles')
+      .select('id')
+      .eq('role', 'student');
+
+    if (!students || students.length === 0) {
+      return res.json({ message: 'No student data to clear', deleted: 0 });
+    }
+
+    const studentIds = students.map(s => s.id);
+
+    // Delete all associated data
+    await supabaseAdmin.from('assessment_results').delete().in('user_id', studentIds);
+    await supabaseAdmin.from('interaction_logs').delete().in('user_id', studentIds);
+    await supabaseAdmin.from('user_progress').delete().in('user_id', studentIds);
+    await supabaseAdmin.from('profiles').delete().in('id', studentIds);
+
+    // Delete auth users one by one
+    for (const id of studentIds) {
+      await supabaseAdmin.auth.admin.deleteUser(id);
+    }
+
+    res.json({ message: `All student data cleared`, deleted: studentIds.length });
+  } catch (err) {
+    console.error('Clear all error:', err);
+    res.status(500).json({ error: 'Failed to clear student data' });
+  }
+});
+
 module.exports = router;

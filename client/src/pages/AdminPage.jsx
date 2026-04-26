@@ -11,8 +11,12 @@ export default function AdminPage() {
   const [participation, setParticipation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [deleting, setDeleting] = useState(null);
+  const [clearing, setClearing] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
 
-  useEffect(() => {
+  function loadData() {
+    setLoading(true);
     Promise.all([api.getDashboard(), api.getParticipation()])
       .then(([dashData, partData]) => {
         setDashboard(dashData.dashboard || []);
@@ -20,7 +24,40 @@ export default function AdminPage() {
       })
       .catch(err => console.error('Admin data error:', err))
       .finally(() => setLoading(false));
-  }, []);
+  }
+
+  useEffect(() => { loadData(); }, []);
+
+  async function handleDeleteUser(userId, name) {
+    if (!window.confirm(`Are you sure you want to delete ${name} and all their data? This cannot be undone.`)) return;
+    setDeleting(userId);
+    try {
+      await api.deleteUser(userId);
+      loadData();
+    } catch (err) {
+      alert('Delete failed: ' + err.message);
+    } finally {
+      setDeleting(null);
+    }
+  }
+
+  async function handleClearAll() {
+    if (!confirmClear) {
+      setConfirmClear(true);
+      return;
+    }
+    setClearing(true);
+    try {
+      const result = await api.clearAllStudents();
+      alert(`Cleared ${result.deleted} student(s) and all associated data.`);
+      setConfirmClear(false);
+      loadData();
+    } catch (err) {
+      alert('Clear failed: ' + err.message);
+    } finally {
+      setClearing(false);
+    }
+  }
 
   async function handleExport() {
     try {
@@ -41,9 +78,7 @@ export default function AdminPage() {
 
   if (loading) return <div className="min-h-screen flex items-center justify-center text-gray-500">Loading admin dashboard...</div>;
 
-  // Reshape data for charts
   const groups = ['Text-Based', 'Video-Based', 'Interactive'];
-  const phases = ['pre_training', 'post_training'];
 
   function getMetric(group, phase, metric) {
     const entry = dashboard.find(d => d.group === group && d.phase === phase);
@@ -54,23 +89,20 @@ export default function AdminPage() {
     group: g,
     'Pre Detection Rate': getMetric(g, 'pre_training', 'avg_detection_rate'),
     'Post Detection Rate': getMetric(g, 'post_training', 'avg_detection_rate'),
-    'Pre CTR': getMetric(g, 'pre_training', 'avg_click_through_rate'),
-    'Post CTR': getMetric(g, 'post_training', 'avg_click_through_rate'),
   }));
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Admin nav */}
       <nav className="bg-gray-900 text-white px-6 py-3 flex items-center justify-between">
         <h1 className="text-xl font-bold">🛡️ PhishGuard Admin</h1>
         <div className="flex items-center gap-4">
           <span className="text-sm text-gray-300">{user?.full_name}</span>
+          <button onClick={() => navigate('/')} className="text-sm bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded">Student View</button>
           <button onClick={handleLogout} className="text-sm bg-red-600 hover:bg-red-500 px-3 py-1 rounded">Logout</button>
         </div>
       </nav>
 
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Tabs */}
         <div className="flex gap-1 mb-8 bg-gray-200 rounded-lg p-1 w-fit">
           {['overview', 'participation', 'export'].map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)}
@@ -85,7 +117,6 @@ export default function AdminPage() {
         {/* OVERVIEW TAB */}
         {activeTab === 'overview' && (
           <div>
-            {/* Summary cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
               <div className="bg-white rounded-xl shadow p-5">
                 <p className="text-sm text-gray-500">Total Participants</p>
@@ -105,7 +136,6 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* Detection Rate Comparison */}
             <div className="bg-white rounded-xl shadow p-6 mb-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Detection Rate by Group (Pre vs Post)</h2>
               <ResponsiveContainer width="100%" height={350}>
@@ -121,7 +151,6 @@ export default function AdminPage() {
               </ResponsiveContainer>
             </div>
 
-            {/* Detailed metrics table */}
             <div className="bg-white rounded-xl shadow p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Detailed Group Metrics</h2>
               <div className="overflow-x-auto">
@@ -161,35 +190,77 @@ export default function AdminPage() {
 
         {/* PARTICIPATION TAB */}
         {activeTab === 'participation' && participation && (
-          <div className="bg-white rounded-xl shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Participant Progress</h2>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-gray-50">
-                    <th className="text-left py-3 px-3">Name</th>
-                    <th className="text-left py-3 px-3">Matric</th>
-                    <th className="text-left py-3 px-3">Dept</th>
-                    <th className="text-left py-3 px-3">Group</th>
-                    <th className="text-center py-3 px-3">Pre-Test</th>
-                    <th className="text-center py-3 px-3">Training</th>
-                    <th className="text-center py-3 px-3">Post-Test</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(participation.participants || []).map((p, i) => (
-                    <tr key={i} className="border-b last:border-0 hover:bg-gray-50">
-                      <td className="py-2 px-3">{p.name}</td>
-                      <td className="py-2 px-3 text-gray-500">{p.matric}</td>
-                      <td className="py-2 px-3 text-gray-500">{p.department || '—'}</td>
-                      <td className="py-2 px-3"><span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">{p.group}</span></td>
-                      <td className="py-2 px-3 text-center">{p.pre_complete ? '✅' : '⬜'}</td>
-                      <td className="py-2 px-3 text-center">{p.training_complete ? '✅' : '⬜'}</td>
-                      <td className="py-2 px-3 text-center">{p.post_complete ? '✅' : '⬜'}</td>
+          <div>
+            {/* Clear All Button */}
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Participant Progress</h2>
+              <div className="flex items-center gap-2">
+                {confirmClear && (
+                  <span className="text-red-600 text-sm font-medium">Are you sure? This deletes ALL student data.</span>
+                )}
+                <button 
+                  onClick={handleClearAll} 
+                  disabled={clearing}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    confirmClear 
+                      ? 'bg-red-600 hover:bg-red-700 text-white' 
+                      : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                  }`}
+                >
+                  {clearing ? 'Clearing...' : confirmClear ? 'Yes, Clear All Students' : 'Clear All Student Data'}
+                </button>
+                {confirmClear && (
+                  <button onClick={() => setConfirmClear(false)} className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700">
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow p-6">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-gray-50">
+                      <th className="text-left py-3 px-3">Name</th>
+                      <th className="text-left py-3 px-3">Matric</th>
+                      <th className="text-left py-3 px-3">Dept</th>
+                      <th className="text-left py-3 px-3">Group</th>
+                      <th className="text-center py-3 px-3">Pre-Test</th>
+                      <th className="text-center py-3 px-3">Training</th>
+                      <th className="text-center py-3 px-3">Post-Test</th>
+                      <th className="text-center py-3 px-3">Action</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {(participation.participants || []).map((p, i) => (
+                      <tr key={i} className="border-b last:border-0 hover:bg-gray-50">
+                        <td className="py-2 px-3">{p.name}</td>
+                        <td className="py-2 px-3 text-gray-500">{p.matric}</td>
+                        <td className="py-2 px-3 text-gray-500">{p.department || '—'}</td>
+                        <td className="py-2 px-3">
+                          <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs">{p.group}</span>
+                        </td>
+                        <td className="py-2 px-3 text-center">{p.pre_complete ? '✅' : '⬜'}</td>
+                        <td className="py-2 px-3 text-center">{p.training_complete ? '✅' : '⬜'}</td>
+                        <td className="py-2 px-3 text-center">{p.post_complete ? '✅' : '⬜'}</td>
+                        <td className="py-2 px-3 text-center">
+                          <button
+                            onClick={() => handleDeleteUser(p.id, p.name)}
+                            disabled={deleting === p.id}
+                            className="text-red-500 hover:text-red-700 text-xs font-medium disabled:opacity-50"
+                          >
+                            {deleting === p.id ? 'Deleting...' : 'Remove'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {(!participation.participants || participation.participants.length === 0) && (
+                      <tr><td colSpan={8} className="py-8 text-center text-gray-400">No participants yet</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}

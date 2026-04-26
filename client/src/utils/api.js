@@ -55,4 +55,6 @@ export const api = {
   getDashboard: () => request('/admin/dashboard'),
   getParticipation: () => request('/admin/participation'),
   exportData: () => request('/admin/export'),
+  deleteUser: (userId) => request(`/admin/user/${userId}`, { method: 'DELETE' }),
+  clearAllStudents: () => request('/admin/users/all', { method: 'DELETE' }),
 };
