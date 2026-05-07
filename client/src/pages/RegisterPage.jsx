@@ -27,6 +27,7 @@ export default function RegisterPage() {
     try {
       const payload = { ...form, year_of_study: form.year_of_study ? parseInt(form.year_of_study) : null };
       const data = await api.register(payload);
+      localStorage.setItem('phishguard_email', payload.email);
       login(data.session, { ...data.user, role: 'student' }, { pre_assessment_complete: false, training_complete: false, post_assessment_complete: false });
       navigate('/');
     } catch (err) {

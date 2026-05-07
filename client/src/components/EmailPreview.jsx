@@ -4,10 +4,6 @@ export default function EmailPreview({ scenario, onDecision, showResult, result 
   const [opened, setOpened] = useState(false);
   const [startTime] = useState(Date.now());
 
-  function handleOpen() {
-    setOpened(true);
-  }
-
   function handleDecision(decision) {
     const responseTime = Date.now() - startTime;
     onDecision(scenario.id, decision, responseTime);
@@ -15,6 +11,7 @@ export default function EmailPreview({ scenario, onDecision, showResult, result 
 
   function handleLinkClick(e) {
     e.preventDefault();
+    e.stopPropagation();
     const responseTime = Date.now() - startTime;
     onDecision(scenario.id, 'clicked_link', responseTime);
   }
@@ -22,8 +19,9 @@ export default function EmailPreview({ scenario, onDecision, showResult, result 
   if (!opened) {
     return (
       <div
-        onClick={handleOpen}
-        className="bg-white border border-gray-200 rounded-lg p-4 cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-all shadow-sm"
+        onClick={() => setOpened(true)}
+        onTouchEnd={() => setOpened(true)}
+        className="bg-white border border-gray-200 rounded-lg p-4 cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-all shadow-sm active:bg-blue-100 select-none touch-manipulation"
       >
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 bg-brand-500 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0">
@@ -58,12 +56,14 @@ export default function EmailPreview({ scenario, onDecision, showResult, result 
         </div>
       </div>
 
-      {/* Email body */}
+      {/* Email body - only intercept clicks on <a> tags */}
       <div
         className="px-5 py-4 text-sm text-gray-700 leading-relaxed"
         dangerouslySetInnerHTML={{ __html: scenario.email_body_html }}
         onClick={(e) => {
-          if (e.target.tagName === 'A') handleLinkClick(e);
+          if (e.target.tagName === 'A') {
+            handleLinkClick(e);
+          }
         }}
       />
 
@@ -71,14 +71,16 @@ export default function EmailPreview({ scenario, onDecision, showResult, result 
       {!showResult && (
         <div className="border-t px-5 py-4 flex gap-3">
           <button
+            type="button"
             onClick={() => handleDecision('safe')}
-            className="flex-1 bg-green-600 hover:bg-green-500 text-white py-2.5 px-4 rounded-lg font-medium transition-colors"
+            className="flex-1 bg-green-600 active:bg-green-700 hover:bg-green-500 text-white py-3 px-4 rounded-lg font-medium transition-colors select-none touch-manipulation"
           >
             ✓ This Looks Safe
           </button>
           <button
+            type="button"
             onClick={() => handleDecision('suspicious')}
-            className="flex-1 bg-red-600 hover:bg-red-500 text-white py-2.5 px-4 rounded-lg font-medium transition-colors"
+            className="flex-1 bg-red-600 active:bg-red-700 hover:bg-red-500 text-white py-3 px-4 rounded-lg font-medium transition-colors select-none touch-manipulation"
           >
             ⚠ This Looks Suspicious
           </button>
