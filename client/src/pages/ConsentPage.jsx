@@ -12,13 +12,13 @@ export default function ConsentPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-8">
-      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-2xl">
+      <div className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 w-full max-w-2xl">
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold text-gray-900">🛡️ PhishGuard</h1>
           <p className="text-gray-500 mt-1">Informed Consent Form</p>
         </div>
 
-        <div className="prose prose-sm max-w-none text-gray-700 space-y-4 mb-6 max-h-96 overflow-y-auto border rounded-lg p-5 bg-gray-50">
+        <div className="prose prose-sm max-w-none text-gray-700 space-y-4 mb-6 max-h-96 overflow-y-auto border rounded-lg p-4 sm:p-5 bg-gray-50">
           <h3 className="text-lg font-semibold text-gray-900 mt-0">Study Title</h3>
           <p>Design and Implementation of a Web-Based Phishing Simulation and Awareness Training Platform for University Students</p>
 
@@ -37,7 +37,7 @@ export default function ConsentPage() {
             3. Complete a post-training assessment (evaluate 10 different simulated emails)<br/>
             4. View your personal results
           </p>
-          <p>The entire process takes approximately 25-35 minutes.</p>
+          <p>The entire process takes approximately 10 to 15 minutes.</p>
 
           <h3 className="text-lg font-semibold text-gray-900">Important Information</h3>
           <p>
@@ -55,18 +55,18 @@ export default function ConsentPage() {
             withdraw at any time without penalty or academic consequence.
           </p>
           <p>
-            <strong>Data protection:</strong> Your data is stored securely with Row-Level Security policies.
+            <strong>Data protection:</strong> Your data is stored securely with database-level security policies.
             Any data exported for analysis will be anonymised with participant codes replacing your name
             and matric number.
           </p>
         </div>
 
-        <label className="flex items-start gap-3 mb-5 cursor-pointer">
+        <label className="flex items-start gap-3 mb-5 cursor-pointer touch-manipulation select-none">
           <input
             type="checkbox"
             checked={agreed}
             onChange={(e) => setAgreed(e.target.checked)}
-            className="mt-1 w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            className="mt-1 w-6 h-6 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
           />
           <span className="text-sm text-gray-700">
             I have read and understood the information above. I understand that simulated phishing
@@ -76,9 +76,10 @@ export default function ConsentPage() {
         </label>
 
         <button
+          type="button"
           onClick={handleProceed}
           disabled={!agreed}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed touch-manipulation select-none"
         >
           I Agree — Proceed to Registration
         </button>

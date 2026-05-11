@@ -17,6 +17,7 @@ export default function AssessmentPage() {
   const [finalResults, setFinalResults] = useState(null);
   const [error, setError] = useState(null);
   const [pendingDecision, setPendingDecision] = useState(null);
+  const [processing, setProcessing] = useState(false);
 
   const assessmentPhase = phase === 'pre' ? 'pre_training' : 'post_training';
 
@@ -31,10 +32,10 @@ export default function AssessmentPage() {
   }, [phase]);
 
   async function handleDecision(scenarioId, decision, responseTimeMs) {
-    // Prevent double-tap
-    if (results[scenarioId]) return;
+    if (results[scenarioId] || processing) return;
 
     setError(null);
+    setProcessing(true);
     setPendingDecision({ scenarioId, decision, responseTimeMs });
 
     try {
@@ -42,7 +43,6 @@ export default function AssessmentPage() {
       if (decision === 'safe') actionType = 'marked_safe';
       if (decision === 'suspicious') actionType = 'flagged_suspicious';
 
-      // Log the interaction
       await api.logInteraction({
         scenario_id: scenarioId,
         action_type: actionType,
@@ -50,24 +50,25 @@ export default function AssessmentPage() {
         response_time_ms: responseTimeMs
       });
 
-      // Get evaluation result
       const evalDecision = decision === 'clicked_link' ? 'safe' : decision;
       const evalResult = await api.evaluateDecision({ scenario_id: scenarioId, decision: evalDecision });
 
       setResults(prev => ({ ...prev, [scenarioId]: evalResult }));
       setPendingDecision(null);
-
-      // Move to next scenario after a short delay
-      setTimeout(() => {
-        if (currentIndex < scenarios.length - 1) {
-          setCurrentIndex(prev => prev + 1);
-        } else {
-          completeAssessment();
-        }
-      }, 1500);
+      setProcessing(false);
+      // No auto-advance — user clicks "Next Question" button
     } catch (err) {
       console.error('Decision handling error:', err);
       setError('Connection issue. Tap "Retry" to try again.');
+      setProcessing(false);
+    }
+  }
+
+  function nextQuestion() {
+    if (currentIndex < scenarios.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+    } else {
+      completeAssessment();
     }
   }
 
@@ -125,7 +126,7 @@ export default function AssessmentPage() {
             </div>
           </div>
           <button onClick={() => navigate('/')}
-            className="mt-6 bg-brand-600 hover:bg-brand-700 text-white px-8 py-3 rounded-lg font-medium transition-colors touch-manipulation">
+            className="mt-6 bg-brand-600 hover:bg-brand-700 text-white px-8 py-3 rounded-lg font-medium transition-colors touch-manipulation w-full sm:w-auto">
             Back to Dashboard
           </button>
         </div>
@@ -135,6 +136,9 @@ export default function AssessmentPage() {
 
   const currentScenario = scenarios[currentIndex];
   if (!currentScenario) return <div className="text-center py-12 text-gray-500">No scenarios available.</div>;
+
+  const hasResult = !!results[currentScenario.id];
+  const isLastQuestion = currentIndex >= scenarios.length - 1;
 
   return (
     <div className="max-w-3xl mx-auto px-4">
@@ -155,29 +159,73 @@ export default function AssessmentPage() {
       {/* Progress bar */}
       <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
         <div className="bg-brand-600 h-2 rounded-full transition-all duration-300"
-          style={{ width: `${((currentIndex + (results[currentScenario.id] ? 1 : 0)) / scenarios.length) * 100}%` }} />
+          style={{ width: `${((currentIndex + (hasResult ? 1 : 0)) / scenarios.length) * 100}%` }} />
       </div>
 
-      {/* Error banner with retry */}
+      {/* Error banner with retry and skip */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-4 flex items-center justify-between gap-3">
-          <p className="text-red-700 text-sm">{error}</p>
-          <button
-            onClick={pendingDecision ? retryDecision : completeAssessment}
-            className="bg-red-600 hover:bg-red-700 text-white px-4 py-1.5 rounded-lg text-sm font-medium shrink-0 touch-manipulation"
-          >
-            {pendingDecision ? 'Retry' : 'Try Again'}
-          </button>
+        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-4">
+          <p className="text-red-700 text-sm mb-3">{error}</p>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setError(null);
+                if (pendingDecision) {
+                  retryDecision();
+                } else {
+                  completeAssessment();
+                }
+              }}
+              className="bg-red-600 active:bg-red-700 text-white px-6 py-2.5 rounded-lg text-sm font-medium touch-manipulation select-none"
+            >
+              {pendingDecision ? 'Retry' : 'Try Again'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setError(null);
+                setPendingDecision(null);
+                setProcessing(false);
+                if (currentIndex < scenarios.length - 1) {
+                  setCurrentIndex(prev => prev + 1);
+                } else {
+                  completeAssessment();
+                }
+              }}
+              className="bg-gray-200 active:bg-gray-300 text-gray-700 px-6 py-2.5 rounded-lg text-sm font-medium touch-manipulation select-none"
+            >
+              Skip & Continue
+            </button>
+          </div>
         </div>
+      )}
+
+      {/* Processing indicator */}
+      {processing && (
+        <div className="text-center py-2 mb-4 text-gray-500 text-sm">Saving your response...</div>
       )}
 
       <EmailPreview
         key={currentScenario.id}
         scenario={currentScenario}
         onDecision={handleDecision}
-        showResult={!!results[currentScenario.id]}
+        showResult={hasResult}
         result={results[currentScenario.id]}
       />
+
+      {/* Next Question / Complete button — only shows after feedback is displayed */}
+      {hasResult && !completing && (
+        <div className="mt-4 text-center">
+          <button
+            type="button"
+            onClick={nextQuestion}
+            className="w-full sm:w-auto bg-brand-600 active:bg-brand-700 hover:bg-brand-700 text-white px-8 py-3.5 rounded-lg font-semibold transition-colors touch-manipulation select-none text-base"
+          >
+            {isLastQuestion ? 'Complete Assessment →' : 'Next Question →'}
+          </button>
+        </div>
+      )}
 
       {completing && (
         <div className="text-center py-8 text-gray-500">Computing your results...</div>
